@@ -1,0 +1,15 @@
+name: baseline_encoder
+nun_filters: 32
+in_channels: 3
+n_classes: 2
+batch_norm: group_norm
+block_nums:
+  - 3
+  - 4
+  - 6
+  - 3
+drop_rate:
+  - 0.2
+  - 0.2
+  - 0.2
+  - 0.2

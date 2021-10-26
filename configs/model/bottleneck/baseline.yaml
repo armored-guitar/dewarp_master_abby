@@ -1,0 +1,2 @@
+name: baseline_bottleneck
+batch_norm: group_norm

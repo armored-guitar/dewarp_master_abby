@@ -1,0 +1,4 @@
+defaults:
+  - model: baseline
+  - training: baseline_training
+  - dataset: baseline_dataset.yaml

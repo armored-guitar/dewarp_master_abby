@@ -1,0 +1,9 @@
+defaults:
+  - heads: baseline
+  - decoder: baseline
+  - encoder: baseline
+  - bottleneck: baseline
+  - loss: baseline
+
+type: encoder_decoder
+sub_type: mask_2d_map

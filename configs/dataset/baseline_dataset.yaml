@@ -1,0 +1,14 @@
+train_dataset:
+  type: baseline
+  path: /home/alex/diplom/data/train_dataset/
+  batch_size: 2
+  num_workers: 4
+  shuffle: True
+
+val_dataset:
+  type: baseline
+  path: /home/alex/diplom/data/train_dataset/
+  batch_size: 4
+  num_workers: 4
+  shuffle: False
+

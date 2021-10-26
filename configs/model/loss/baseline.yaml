@@ -1,0 +1,6 @@
+name: baseline
+l1_weight: 0.1
+local_weight: 0.1
+cs_weight: 0.5
+cls_weight: 1
+regress_weight: 0.1
