@@ -26,7 +26,7 @@ class BaselineDewarpDataset(Dataset):
 
     def __getitem__(self, index):
         if self.train:
-            mask = cv2.imread(os.path.join(self.path, self.masks[index]))[:, :, 0]  // 255
+            mask = cv2.imread(os.path.join(self.path, self.masks[index]))[:, :, 0] // 255
             flow = next(iter(np.load(os.path.join(self.path, self.flows[index])).values()))
             img = cv2.imread(os.path.join(self.path, self.images[index]))
 
@@ -34,7 +34,7 @@ class BaselineDewarpDataset(Dataset):
                 img = self.transforms(img)
             img = torch.from_numpy(img.transpose(2, 0, 1)).float()
             mask = torch.from_numpy(mask).float()
-            flow = torch.from_numpy(flow.transpose(2, 0, 1)).float()
+            flow = mask * torch.from_numpy(flow.transpose(2, 0, 1)).float()
             return img, mask, flow
         else:
             img = cv2.imread(os.path.join(self.path, self.images[index]))

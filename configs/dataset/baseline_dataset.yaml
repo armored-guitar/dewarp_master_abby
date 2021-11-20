@@ -7,7 +7,7 @@ train_dataset:
 
 val_dataset:
   type: baseline
-  path: /home/alex/diplom/data/train_dataset/
+  path: /home/alex/diplom/data/val_dataset/
   batch_size: 4
   num_workers: 4
   shuffle: False

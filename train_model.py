@@ -13,7 +13,7 @@ def main(opt: DictConfig):
 
     train_dl, val_dl = get_loaders(opt["dataset"], "train")
 
-    train(opt["training"], model, train_dl, val_dl)
+    train(opt, model, train_dl, val_dl)
 
 
 if __name__ == "__main__":

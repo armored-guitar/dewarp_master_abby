@@ -5,6 +5,8 @@ from omegaconf import OmegaConf
 
 
 def base_multiplier(epoch):
+    if epoch < 10:
+        return 1
     if 10 <= epoch < 20:
         return 0.5
     elif 20 <= epoch < 30:
@@ -34,4 +36,4 @@ def get_scheduler(opt, optimizer):
     if name == "exponential":
         return ExponentialLR(optimizer, **opt)
     if name == "baseline":
-        return LambdaLR(optimizer, lr_lambda=base_multiplier, last_epoch=-1)
+        return LambdaLR(optimizer, lr_lambda=base_multiplier, last_epoch=-1, verbose=True)

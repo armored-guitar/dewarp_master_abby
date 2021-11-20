@@ -19,33 +19,35 @@ from libs.utils.utils import seed_everything, create_dir_for_file_if_needed, cou
 def train(opt: DictConfig, model: nn.Module, train_dl: DataLoader, val_dl: DataLoader):
     """
     Train whole model
-    :param opt: config for training process
+    :param training_opt: config for the whole script
     :param model: model to train
     :param train_dl: dataloader for training data
     :param val_dl: dataloader for validation data
     """
+    training_opt = opt["training"]
     seed_everything(42)
-    start_epoch = opt.get("start_epoch", 0)
-    end_epoch = opt["n_epoch"]
+    start_epoch = training_opt.get("start_epoch", 0)
+    end_epoch = training_opt["n_epoch"]
 
-    optimizer = get_optimizer(opt["optimizer"], model)
-    scheduler_config = opt.get("scheduler", None)
+    optimizer = get_optimizer(training_opt["optimizer"], model)
+    scheduler_config = training_opt.get("scheduler", None)
+    # scheduler_config = None
     scheduler = get_scheduler(scheduler_config, optimizer) if scheduler_config is not None else None
 
     if start_epoch != 0:
-        name = opt["continue_name"]
-        path = os.path.join(opt["checkpoint_dir"], name, f"{start_epoch-1}.pth")
-        model, optimizer, scheduler = load_everything(model, optimizer, scheduler, opt["load_optim"], path)
-        config_name = get_name(os.path.join(opt["base_dir"], opt["checkpoint_dir"]), "config", False)
+        name = training_opt["continue_name"]
+        path = os.path.join(training_opt["checkpoint_dir"], name, f"{start_epoch - 1}.pth")
+        model, optimizer, scheduler = load_everything(model, optimizer, scheduler, training_opt["load_optim"], path)
+        config_name = get_name(os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"]), "config", False)
     else:
-        name = get_name(os.path.join(opt["base_dir"], opt["checkpoint_dir"]), opt["name"], True)
+        name = get_name(os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"]), training_opt["name"], True)
         config_name = "config"
 
-    with open(os.path.join(opt["base_dir"], opt["checkpoint_dir"], name, f"{config_name}.yaml"), 'w') as f:
+    with open(os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"], name, f"{config_name}.yaml"), 'w') as f:
         yaml.dump(OmegaConf.to_container(opt), f, default_flow_style=False, sort_keys=False)
 
-    writer = SummaryWriter(os.path.join(opt["base_dir"], opt["logs_dir"], name))
-    writer.add_text(name, str(OmegaConf.to_object(opt)))
+    writer = SummaryWriter(os.path.join(training_opt["base_dir"], training_opt["logs_dir"], name))
+    writer.add_text(name, str(OmegaConf.to_object(training_opt)))
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
@@ -64,6 +66,7 @@ def train(opt: DictConfig, model: nn.Module, train_dl: DataLoader, val_dl: DataL
             scheduler.step(val_log_dict["step_value"])
         elif scheduler is not None:
             scheduler.step()
+            print("scheduler step")
 
         writer.add_scalar("lr", optimizer.param_groups[0]['lr'], epoch)
         torch.save({
@@ -72,5 +75,5 @@ def train(opt: DictConfig, model: nn.Module, train_dl: DataLoader, val_dl: DataL
             **val_log_dict,
             "optimizer": optimizer.state_dict(),
             "scheduler": scheduler.state_dict()
-        }, os.path.join(opt["base_dir"], opt["checkpoint_dir"], name, f"{epoch}.pth")
+        }, os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"], name, f"{epoch}.pth")
         )

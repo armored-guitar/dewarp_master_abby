@@ -1,4 +1,3 @@
-import torch
 from omegaconf import OmegaConf
 import abc
 from typing import Tuple
@@ -11,18 +10,20 @@ def get_decoder(opt):
     name = opt["name"]
     if name == "baseline_decoder":
         return BaselineDecoder(opt)
-
+    raise NotImplementedError
 
 def get_encoder(opt):
     name = opt["name"]
     if name == "baseline_encoder":
         return BaselineEncoder(opt)
+    raise NotImplementedError
 
 
 def get_heads(opt):
     name = opt["name"]
     if name == "baseline_head":
         return BaselineHeads(opt)
+    raise NotImplementedError
 
 
 def get_bottleneck(opt):
@@ -72,9 +73,8 @@ class EncoderDecoder(nn.Module, abc.ABC):
 
 class EncoderDecoderMask2dMap(EncoderDecoder):
     def prepare_input(self, batch_data: Tuple[torch.Tensor]):
-        img, mask, flow = batch_data[0].to(self.dummy_param.device), batch_data[1].to(self.dummy_param.device), \
-                          batch_data[2].to(self.dummy_param.device)
-        return img, mask, flow
+        output = tuple(el.to(self.dummy_param.device) for el in batch_data)
+        return output
 
 
 def get_encoder_decoder_model(opt):
