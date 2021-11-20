@@ -4,6 +4,7 @@ from typing import Tuple
 
 from libs.modules.baseline import *
 from libs.losses.losses import get_loss
+from libs.modules.mhsa_bottleneck import BottleBlock
 
 
 def get_decoder(opt):
@@ -30,6 +31,9 @@ def get_bottleneck(opt):
     name = opt["name"]
     if name == "baseline_bottleneck":
         return BaselineBottleneck(opt)
+    if name == "botnet_bottleneck":
+        return BottleBlock(opt)
+    raise NotImplementedError
 
 
 class EncoderDecoder(nn.Module, abc.ABC):

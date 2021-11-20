@@ -1,0 +1,8 @@
+name: botnet_bottleneck
+dim: 2048
+dim_out: 2048
+proj_factor: 4
+downsample: False
+heads: 4
+dim_head: 128
+rel_pos_emb: True
