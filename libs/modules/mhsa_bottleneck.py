@@ -3,6 +3,11 @@ from torch import nn, einsum
 
 from einops import rearrange
 
+# translated from tensorflow code
+# https://gist.github.com/aravindsrinivas/56359b79f0ce4449bcb04ab4b56a57a2
+
+# positional embedding helpers
+
 
 def pair(x):
     return (x, x) if not isinstance(x, tuple) else x
@@ -36,6 +41,8 @@ def relative_logits_1d(q, rel_k):
     logits = logits.reshape(b, heads, h, w, w)
     logits = expand_dim(logits, dim = 3, k = h)
     return logits
+
+# positional embeddings
 
 
 class AbsPosEmb(nn.Module):
@@ -82,6 +89,8 @@ class RelPosEmb(nn.Module):
         rel_logits_h = rearrange(rel_logits_h, 'b h x i y j -> b h (y x) (j i)')
         return rel_logits_w + rel_logits_h
 
+# classes
+
 
 class Attention(nn.Module):
     def __init__(
@@ -122,26 +131,28 @@ class Attention(nn.Module):
 
 
 class BottleBlock(nn.Module):
-    def __init__(self, opt):
-        super().__init__()
-        print("BottleBlock used")
-        dim = opt.get("dim", 2048)
-        fmap_size = opt.get("fmap_size", (32, 30))
-        dim_out = opt.get("dim_out", 2048)
-        proj_factor = opt.get("proj_factor", 4)
-        downsample = opt.get("downsample", False)
-        heads = opt.get("heads", 4)
-        dim_head = opt.get("dim_head", 128)
-        rel_pos_emb = opt.get("rel_pos_emb", True)
-
+    def __init__(
+        self,
+        *,
+        dim,
+        fmap_size,
+        dim_out,
+        proj_factor,
+        downsample,
+        heads = 4,
+        dim_head = 128,
+        rel_pos_emb = False,
         activation = nn.ReLU()
+    ):
+        super().__init__()
+
         # shortcut
 
         if dim != dim_out or downsample:
             kernel_size, stride, padding = (3, 2, 1) if downsample else (1, 1, 0)
 
             self.shortcut = nn.Sequential(
-                nn.Conv2d(dim, dim_out, kernel_size, stride=stride, padding=padding, bias = False),
+                nn.Conv2d(dim, dim_out, kernel_size, stride = stride, padding = padding, bias = False),
                 nn.BatchNorm2d(dim_out),
                 activation
             )
@@ -153,7 +164,6 @@ class BottleBlock(nn.Module):
         attn_dim_in = dim_out // proj_factor
         attn_dim_out = heads * dim_head
 
-        self.pre_bottleneck = nn.Conv2d(256, 2048, 1)
         self.net = nn.Sequential(
             nn.Conv2d(dim, attn_dim_in, 1, bias=False),
             nn.BatchNorm2d(attn_dim_in),
@@ -162,16 +172,15 @@ class BottleBlock(nn.Module):
                 dim=attn_dim_in,
                 fmap_size=fmap_size,
                 heads=heads,
-                dim_head =dim_head,
-                rel_pos_emb=rel_pos_emb
+                dim_head=dim_head,
+                rel_pos_emb = rel_pos_emb
             ),
             nn.AvgPool2d((2, 2)) if downsample else nn.Identity(),
             nn.BatchNorm2d(attn_dim_out),
             activation,
-            nn.Conv2d(attn_dim_out, dim_out, 1, bias=False),
-            nn.BatchNorm2d(dim_out),
+            nn.Conv2d(attn_dim_out, dim_out, 1, bias = False),
+            nn.BatchNorm2d(dim_out)
         )
-        self.post_bottleneck = nn.Conv2d(2048, 512, 1)
 
         # init last batch norm gamma to zero
 
@@ -182,9 +191,63 @@ class BottleBlock(nn.Module):
         self.activation = activation
 
     def forward(self, x):
-        x = self.pre_bottleneck(x)
         shortcut = self.shortcut(x)
         x = self.net(x)
         x = x + shortcut
-        x = self.post_bottleneck(x)
         return self.activation(x)
+
+
+# main bottle stack
+
+class BottleStack(nn.Module):
+    def __init__(self, opt):
+        super().__init__()
+        activation = nn.ReLU()
+        self.num_layers = opt.get("num_layers", 3)
+        self.dim = opt.get("dim", 256)
+        self.fmap_size = opt.get("fmap_size", (32, 30))
+        self.dim_out = opt.get("dim_out", 2048)
+        self.proj_factor = opt.get("proj_factor", 4)
+        self.downsample = opt.get("downsample", False)
+        self.heads = opt.get("heads", 4)
+        self.dim_head = opt.get("dim_head", 128)
+        self.rel_pos_emb = opt.get("rel_pos_emb", True)
+        self.fmap_size = pair(self.fmap_size)
+        self.bottleneck_out_dim = opt.get("bottleneck_out_dim", 512)
+
+        layers = []
+
+        for i in range(self.num_layers):
+            is_first = i == 0
+            dim = (self.dim if is_first else self.dim_out)
+            layer_downsample = is_first and self.downsample
+
+            fmap_divisor = (2 if self.downsample and not is_first else 1)
+            layer_fmap_size = tuple(map(lambda t: t // fmap_divisor, self.fmap_size))
+
+            layers.append(BottleBlock(
+                dim=dim,
+                fmap_size=layer_fmap_size,
+                dim_out=self.dim_out,
+                proj_factor=self.proj_factor,
+                heads=self.heads,
+                dim_head=self.dim_head,
+                downsample=layer_downsample,
+                rel_pos_emb=self.rel_pos_emb,
+                activation=activation
+            ))
+        if self.downsample:
+            self.net.append(
+                nn.Sequential(
+                    nn.Conv2d(self.dim_out, self.bottleneck_out_dim, 1),
+                    nn.BatchNorm2d(self.bottleneck_out_dim),
+                    activation
+                )
+            )
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x):
+        _, c, h, w = x.shape
+        assert c == self.dim, f'channels of feature map {c} must match channels given at init {self.dim}'
+        assert h == self.fmap_size[0] and w == self.fmap_size[1], f'height and width ({h} {w}) of feature map must match the fmap_size given at init {self.fmap_size}'
+        return self.net(x)
