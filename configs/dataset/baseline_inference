@@ -1,7 +1,0 @@
-val_dataset:
-  type: baseline
-  path: /home/alex/diplom/data/train_dataset/
-  batch_size: 1
-  num_workers: 1
-  shuffle: False
-

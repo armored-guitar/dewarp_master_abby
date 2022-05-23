@@ -1,0 +1,5 @@
+defaults:
+  - model: segformer
+  - training: segformer
+  - dataset: baseline_dataset_transforms
+  - inference: segformer

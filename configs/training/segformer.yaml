@@ -1,16 +1,19 @@
-name: transformer_inside_baseline_enc_bs_4
+name: segformer_b0_bs3_pretrained_vanila
 n_epoch: 100
 
-base_dir: ./results/
+base_dir: ./results_copy/
 logs_dir: logs
 checkpoint_dir: checkpoints
 
+mixed_precision: False
+
 optimizer:
   name: adamw
-  lr: 0.0001
+  lr:
+    - 0.00004
+    - 0.00008
   weight_decay: 1e-10
 
 scheduler:
   name: transformer
-
 

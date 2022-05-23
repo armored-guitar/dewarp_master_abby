@@ -1,0 +1,3 @@
+path: ./results_copy/checkpoints/segformer_b0_bs3_pretrained_vanila/
+epoch: 27
+dewarped_path: ./results/baseline_dewarp_segformer_b0_vanila/

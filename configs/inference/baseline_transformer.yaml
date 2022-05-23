@@ -1,0 +1,3 @@
+path: ./results/checkpoints/baseline_transformer_bottleneck_adamw_lr_1e-4_wd_1e-10_8_heads_6_layers_1/
+epoch: 40
+dewarped_path: ./results/baseline_dewarp_transformer/

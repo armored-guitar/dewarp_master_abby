@@ -3,6 +3,8 @@ from torch import nn, einsum
 
 from einops import rearrange
 
+from libs.modules.blocks import transitionUpGN
+
 # translated from tensorflow code
 # https://gist.github.com/aravindsrinivas/56359b79f0ce4449bcb04ab4b56a57a2
 
@@ -77,17 +79,17 @@ class RelPosEmb(nn.Module):
         self.rel_height = nn.Parameter(torch.randn(height * 2 - 1, dim_head) * scale)
         self.rel_width = nn.Parameter(torch.randn(width * 2 - 1, dim_head) * scale)
 
-    def forward(self, q):
+    def forward(self, q, use_sum=True):
         h, w = self.fmap_size
-
-        q = rearrange(q, 'b h (x y) d -> b h x y d', x = h, y = w)
+        if len(q.shape) == 4:
+            q = rearrange(q, 'b h (x y) d -> b h x y d', x=h, y=w)
         rel_logits_w = relative_logits_1d(q, self.rel_width)
         rel_logits_w = rearrange(rel_logits_w, 'b h x i y j-> b h (x y) (i j)')
 
         q = rearrange(q, 'b h x y d -> b h y x d')
         rel_logits_h = relative_logits_1d(q, self.rel_height)
         rel_logits_h = rearrange(rel_logits_h, 'b h x i y j -> b h (y x) (j i)')
-        return rel_logits_w + rel_logits_h
+        return rel_logits_w + rel_logits_h if use_sum else (rel_logits_w,  rel_logits_h)
 
 # classes
 
@@ -236,14 +238,18 @@ class BottleStack(nn.Module):
                 rel_pos_emb=self.rel_pos_emb,
                 activation=activation
             ))
-        if self.downsample:
-            self.net.append(
+        if (not self.downsample) and (self.dim_out != self.bottleneck_out_dim):
+            layers.append(
                 nn.Sequential(
                     nn.Conv2d(self.dim_out, self.bottleneck_out_dim, 1),
                     nn.BatchNorm2d(self.bottleneck_out_dim),
                     activation
                 )
             )
+        elif self.downsample:
+            layers.append(
+                    transitionUpGN(self.dim_out, self.bottleneck_out_dim, activation, nn.GroupNorm, GN_num=32),
+                )
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):

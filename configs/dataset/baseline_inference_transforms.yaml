@@ -1,0 +1,10 @@
+val_dataset:
+  type: baseline
+  path: /home/alex/diplom/dewarp_flow_baseline/data/crop
+  batch_size: 1
+  num_workers: 1
+  shuffle: False
+  transforms: True
+
+train_dataset:
+  transforms: True

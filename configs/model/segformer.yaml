@@ -1,0 +1,9 @@
+defaults:
+  - heads: baseline
+  - decoder: segformer_cnn
+  - encoder: segformer
+  - bottleneck: dummy
+  - loss: baseline
+
+type: encoder_decoder
+sub_type: segformer

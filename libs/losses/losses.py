@@ -22,14 +22,15 @@ class BaselineLoss(nn.Module):
         return F.binary_cross_entropy_with_logits(mask_pred, mask)
 
     def _flow_loss(self, input_, target, outputs_classify, labels_classify):
+        eps = 1e-10
+        input_, target, outputs_classify, labels_classify = input_.float(), target.float(), outputs_classify.float(), labels_classify.float()
         input = input_.clone()
         n, c, h, w = input_.size()
 
         n_fore = torch.sum(labels_classify)
         labels_classify_ = labels_classify.unsqueeze(1)
-        l_c = labels_classify_.expand(n, c, h, w).float()
+        l_c = labels_classify_.expand(n, c, h, w).to(input_.dtype)
         input = input * l_c
-
         i_t = target - input
         loss_l1 = torch.sum(torch.abs(i_t)) / (n_fore * 2)
 
@@ -37,7 +38,7 @@ class BaselineLoss(nn.Module):
                                                                                                               w)
         input = input_ * l_c_outputs_classify
         loss_CS = 1 + torch.sum(-((torch.sum(target * input, dim=1)) / (
-                    torch.norm(target, dim=1) * torch.norm(input, dim=1) + 1e-10))) / n_fore
+                    torch.norm(target, dim=1) * torch.norm(input, dim=1) + eps))) / n_fore
 
 
         mask = F.conv2d(labels_classify_, self.kernel_1_3, padding=1)
@@ -49,7 +50,7 @@ class BaselineLoss(nn.Module):
         return loss_l1, loss_local, loss_CS, input, l_c_outputs_classify
 
     def calculate_loss(self, input_batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor], output_batch: Tuple[torch.Tensor, torch.Tensor]):
-        _, labels_classify, labels = input_batch
+        _, labels_classify, labels, *_ = input_batch
         outputs, outputs_classify = output_batch #bs, 2, h, w
         outputs_classify = outputs_classify.squeeze(1)
 
@@ -63,12 +64,12 @@ class BaselineLoss(nn.Module):
         loss_dict = {"total_loss": loss.item(),
                     "L1": self.l1_weight * loss_l1.item(),
                     "local": self.local_weight * loss_local.item(), "cs": self.cs_weight * loss_CS.item(),
-                    "cls": self.cls_weight * loss_cls.item(), "regression": self.regress_weight * loss_regress.item(),
-                    "debug": torch.mean(torch.sum(torch.abs(labels * input), dim=1)).item(),
-                    "debug_input": torch.norm(input, dim=1).mean().item(),
-                    "debug_flow": torch.norm(labels, dim=1).mean().item(),
-                    "debug_pred_mask": l_c_outputs_classify.mean().item(),
-                    "debug_mask": labels_classify.mean().item()}
+                    "cls": self.cls_weight * loss_cls.item(), "regression": self.regress_weight * loss_regress.item()}
+                    # "debug": torch.mean(torch.sum(torch.abs(labels * input), dim=1)).item(),
+                    # "debug_input": torch.norm(input, dim=1).mean().item(),
+                    # "debug_flow": torch.norm(labels, dim=1).mean().item(),
+                    # "debug_pred_mask": l_c_outputs_classify.mean().item(),
+                    # "debug_mask": labels_classify.mean().item()}
         return loss, loss_dict
 
 
