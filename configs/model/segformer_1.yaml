@@ -1,0 +1,9 @@
+defaults:
+  - heads: cut_head
+  - decoder: segformer_upsample
+  - encoder: segformer
+  - bottleneck: dummy
+  - loss: baseline
+
+type: encoder_decoder
+sub_type: segformer

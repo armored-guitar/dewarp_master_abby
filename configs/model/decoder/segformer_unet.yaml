@@ -1,0 +1,5 @@
+name: mpl_unet
+hidden_size: 320
+output_size: 3
+dropout: 0
+use_act: False

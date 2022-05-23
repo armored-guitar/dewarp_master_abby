@@ -1,4 +1,5 @@
 defaults:
-  - model: baseline
+  - model: encoder_decoder
   - training: baseline_training
-  - dataset: baseline_dataset.yaml
+  - dataset: baseline_dataset
+  - inference: baseline

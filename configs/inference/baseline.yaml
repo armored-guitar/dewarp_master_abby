@@ -1,0 +1,3 @@
+path: ./results/checkpoints/baseline/
+epoch: 40
+dewarped_path: ./results/baseline_dewarp/

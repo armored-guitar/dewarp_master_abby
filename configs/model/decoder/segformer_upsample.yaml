@@ -1,0 +1,2 @@
+name: segformer_upsample
+batch_norm: group_norm

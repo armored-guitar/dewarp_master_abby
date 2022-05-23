@@ -6,7 +6,7 @@ from libs.modules.blocks import *
 
 class EncoderTail(nn.Module):
     def __init__(self, num_filter, map_num, BatchNorm, GN_num=[32, 32, 32, 32], block_nums=[3, 4, 6, 3],
-                 block=ResidualBlock34DilatedV4GN, stride=[1, 2, 2, 2], dropRate=[0.2, 0.2, 0.2, 0.2],
+                 block=ResidualBlock34DilatedV4GN, stride=[1, 2, 2, 2], dropRate=[0, 0, 0, 0],
                  is_sub_dropout=False):
         super(EncoderTail, self).__init__()
         self.in_channels = num_filter * map_num[0]
@@ -174,7 +174,6 @@ class BaselineBottleneck(nn.Module):
 
         bridge_concate = torch.cat([bridge_1, bridge_2, bridge_3, bridge_4, bridge_5, bridge_6], dim=1)
         bridge = self.bridge_concate(bridge_concate)
-
         return bridge
 
 

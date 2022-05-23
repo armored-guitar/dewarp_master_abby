@@ -4,11 +4,15 @@ train_dataset:
   batch_size: 2
   num_workers: 4
   shuffle: True
+  pin_memory: True
+  transforms: False
 
 val_dataset:
   type: baseline
-  path: /home/alex/diplom/data/train_dataset/
-  batch_size: 4
+  path: /home/alex/diplom/data/val_dataset
+  batch_size: 1
   num_workers: 4
   shuffle: False
+  pin_memory: True
+  transforms: False
 

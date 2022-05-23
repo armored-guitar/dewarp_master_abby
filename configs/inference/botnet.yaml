@@ -1,0 +1,3 @@
+path: ./results/checkpoints/botnet_3_bot_wo_downsample_5_layers_2/
+epoch: 22
+dewarped_path: ./results/checkpoints/botnet_3_bot_wo_downsample_5_layers_2/dewarped

@@ -2,10 +2,11 @@ import cv2
 import numpy as np
 import scipy.spatial.qhull as qhull
 
+K = 0
+
 
 def create_mapping(perturbed_img,  perturbed_label, perturbed_label_classify):
     flat_shape = perturbed_img.shape[:2]
-    perturbed_label = cv2.resize(perturbed_label * 2, (flat_shape[1], flat_shape[0]), interpolation=cv2.INTER_LINEAR)
     perturbed_label_classify = cv2.resize(perturbed_label_classify.astype(np.float32), (flat_shape[1], flat_shape[0]),
                                           interpolation=cv2.INTER_LINEAR)
     perturbed_label_classify[perturbed_label_classify <= 0.5] = 0
