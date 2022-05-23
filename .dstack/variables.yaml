@@ -1,0 +1,4 @@
+variables:
+  train:
+      config: "configs/segformer.yaml"
+      overrides: ""
