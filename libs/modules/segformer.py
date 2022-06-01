@@ -3,7 +3,9 @@ import torch
 import numpy as np
 
 from libs.modules.blocks import *
-from transformers import SegformerForSemanticSegmentation, SegformerConfig, SegformerForImageClassification
+from libs.modules.classification_model import ClassificationSegformerModel
+from transformers import SegformerForSemanticSegmentation, SegformerConfig
+from transformers import SegformerForImageClassification, SegformerModel
 
 
 class PositionalEncoding2D(nn.Module):
@@ -99,6 +101,7 @@ class SegFormerEncoder(nn.Module):
         self.use_first_pos_only = opt.get("use_first_pos_only", False)
         self.pretrained = opt.get("pretrained", False)
         self.use_default_decoder = opt.get("use_default_decoder", True)
+        self.use_xca = opt.get("use_xca", False)
         configuration = SegformerConfig(attention_probs_dropout_prob=0.1, hidden_dropout_prob=0.1,
                                         patch_sizes=[7, 3, 3, 3], classifier_dropout_prob=0.1,
                                         num_labels=self.output_segformer, reshape_last_stage=True,
@@ -110,11 +113,26 @@ class SegFormerEncoder(nn.Module):
         ## TODO test baseline with transformer_encoder
         # SegformerConfig(num_labels=150, reshape_last_stage=True, hidden_sizes=[64, 128, 320, 512])
         self.segformer = SegformerForSemanticSegmentation(configuration, use_pos_encoding=self.use_pos_encoding,
-                                                          use_first_pos_only=self.use_first_pos_only)
+                                                          use_first_pos_only=self.use_first_pos_only,
+                                                          use_xca=self.use_xca)
 
         if self.pretrained:
-            encoder_pretrained = SegformerForImageClassification.from_pretrained("nvidia/mit-b0").segformer
-            self.segformer.segformer = encoder_pretrained
+            if isinstance(self.pretrained, bool):
+                encoder_pretrained = SegformerForImageClassification.from_pretrained("nvidia/mit-b0").segformer
+                self.segformer.segformer = encoder_pretrained
+                print("loaded mit model")
+            elif isinstance(self.pretrained, str):
+                checkpoint = torch.load(self.pretrained)["model"]
+
+                encoder_pretrained = ClassificationSegformerModel({"encoder": opt, "loss": {"name": "ce"}})
+                encoder_pretrained.load_state_dict(checkpoint, strict=True)
+                encoder_pretrained = encoder_pretrained.segformer.segformer
+                assert type(self.segformer.segformer) == type(encoder_pretrained)
+
+                self.segformer.segformer = encoder_pretrained
+
+                assert isinstance(self.segformer.segformer, SegformerModel)
+
             pos_usage = []
             mult = True
             for i, module in enumerate(self.segformer.segformer.encoder.patch_embeddings):

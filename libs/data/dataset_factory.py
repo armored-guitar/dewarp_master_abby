@@ -2,13 +2,16 @@ from torch.utils.data import DataLoader
 from omegaconf import DictConfig, OmegaConf
 from typing import Optional, Any, Tuple, Union
 
-from libs.data.dataset import BaselineDewarpDataset
+from libs.data.dataset import BaselineDewarpDataset, ClassificationDataset
 
 
 def get_dataset(opt: DictConfig, transforms: Optional[Any]=None, train=True, return_img: bool = False, return_name=False, test=False):
     name = opt["type"]
     if name == "baseline":
-        return BaselineDewarpDataset(opt["path"], transforms, train, return_img=return_img, return_name=return_name, test=test)
+        return BaselineDewarpDataset(opt["path"], transforms, train, return_img=return_img, return_name=return_name,
+                                     test=test)
+    if name == "classification":
+        return ClassificationDataset(opt).get()
 
 
 def get_loader(opt: DictConfig, transforms: Optional[Any]=None, train=True, test=False, return_img: bool = False, return_name=False):
@@ -17,6 +20,8 @@ def get_loader(opt: DictConfig, transforms: Optional[Any]=None, train=True, test
     opt.pop("transforms", False)
     opt.pop("type")
     opt.pop("path")
+    if "size" in opt:
+        opt.pop("size")
     return DataLoader(dataset, **opt)
 
 

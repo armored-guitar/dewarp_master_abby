@@ -1,0 +1,21 @@
+train_dataset:
+  type: classification
+  path: /media/alex/diplom/data/ILSVRC/Data/CLS-LOC/train
+  batch_size: 64
+  num_workers: 8
+  size:
+    - 224
+    - 224
+  shuffle: True
+  pin_memory: True
+
+val_dataset:
+  type: classification
+  path: /media/alex/diplom/data/ILSVRC/Data/CLS-LOC/val
+  batch_size: 16
+  num_workers: 8
+  size:
+    - 224
+    - 224
+  shuffle: False
+  pin_memory: True

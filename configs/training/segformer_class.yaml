@@ -1,7 +1,7 @@
-name: segformer_b0_bs3_pretrained_pos_encod_
+name: segformer_b0_classification_all_pos_encod_small_dataset
 n_epoch: 100
 
-base_dir: ./results_copy/
+base_dir: ./results_copy/classification/
 logs_dir: logs
 checkpoint_dir: checkpoints
 
@@ -10,10 +10,11 @@ mixed_precision: False
 optimizer:
   name: adamw
   lr:
-    - 0.00004
+    - 0.00008
     - 0.00008
   weight_decay: 1e-10
 
 scheduler:
   name: transformer
+
 

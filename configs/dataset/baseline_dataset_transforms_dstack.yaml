@@ -1,0 +1,18 @@
+train_dataset:
+  type: baseline
+  path: ./data/train_dataset/
+  batch_size: 3
+  num_workers: 1
+  pin_memory: True
+  shuffle: True
+  transforms: True
+
+val_dataset:
+  type: baseline
+  path: ./data/val_dataset/
+  batch_size: 1
+  num_workers: 4
+  shuffle: False
+  pin_memory: True
+  transforms: True
+

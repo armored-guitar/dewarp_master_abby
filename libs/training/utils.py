@@ -75,6 +75,6 @@ def get_scheduler(opt, optimizer):
         return LambdaLR(optimizer, lr_lambda=base_multiplier, last_epoch=-1, verbose=True)
     if name == "transformer":
         print("transformer_multiplier")
-        return LambdaLR(optimizer, lr_lambda=transformer_multiplier, last_epoch=-1, verbose=True)
+        return LambdaLR(optimizer, lr_lambda=transformer_multiplier, last_epoch=-1, verbose=False)
     print("None scheduler")
     return None

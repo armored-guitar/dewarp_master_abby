@@ -11,7 +11,7 @@ from omegaconf import OmegaConf
 import yaml
 
 from libs.utils.checkpoint import get_name, load_everything
-from libs.training.steps import train_epoch, val_epoch
+from libs.training.steps import train_epoch, val_epoch, classification_epoch
 from libs.training.utils import get_scheduler, get_optimizer
 from libs.utils.utils import seed_everything, create_dir_for_file_if_needed, count_params
 
@@ -42,7 +42,7 @@ def train(opt: DictConfig, model: nn.Module, train_dl: DataLoader, val_dl: DataL
     mixed = training_opt.get("mixed_precision", False)
     if mixed:
         print("using mixed precision")
-
+    eval_every = training_opt.get("eval_every", None)
     if start_epoch != 0:
         name = training_opt["continue_name"]
         path = os.path.join(training_opt["checkpoint_dir"], name, f"{start_epoch - 1}.pth")
@@ -73,22 +73,24 @@ def train(opt: DictConfig, model: nn.Module, train_dl: DataLoader, val_dl: DataL
         if freeze_encoder_until != 0 and epoch == freeze_encoder_until:
             for param in model.encoder.parameters():
                 param.requires_grad = True
+        if eval_every is None:
+            train_epoch(model, train_dl, optimizer, epoch, writer, mixed, scheduler)
+            val_log_dict = val_epoch(model, val_dl, epoch, writer, mixed)
+            epoch_pbar.set_postfix(val_log_dict)
 
-        train_epoch(model, train_dl, optimizer, epoch, writer, mixed, scheduler)
-        val_log_dict = val_epoch(model, val_dl, epoch, writer, mixed)
-        epoch_pbar.set_postfix(val_log_dict)
+            if (scheduler is not None) and isinstance(scheduler, ReduceLROnPlateau):
+                scheduler.step(val_log_dict["step_value"])
+            elif scheduler is not None and not isinstance(scheduler, CosineAnnealingWarmRestarts):
+                scheduler.step()
+                print("scheduler step")
 
-        if (scheduler is not None) and isinstance(scheduler, ReduceLROnPlateau):
-            scheduler.step(val_log_dict["step_value"])
-        elif scheduler is not None and not isinstance(scheduler, CosineAnnealingWarmRestarts):
-            scheduler.step()
-            print("scheduler step")
-
-        torch.save({
-            'model': model.state_dict(),
-            'epoch': epoch,
-            **val_log_dict,
-            "optimizer": optimizer.state_dict(),
-            "scheduler": "none" if scheduler is None else scheduler.state_dict()
-        }, os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"], name, f"{epoch}.pth")
-        )
+            torch.save({
+                'model': model.state_dict(),
+                'epoch': epoch,
+                **val_log_dict,
+                "optimizer": optimizer.state_dict(),
+                "scheduler": "none" if scheduler is None else scheduler.state_dict()
+            }, os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"], name, f"{epoch}.pth")
+            )
+        else:
+            classification_epoch(model, train_dl, val_dl, optimizer, epoch, writer, training_opt, eval_every, name)

@@ -1,33 +1,16 @@
 workflows:
-  - name: download
-    provider: python
-    script: download.py
-    requirements: requirements1.txt
-    artifacts:
-      - data
-    resources:
-      memory: 60GB
-      cpu: 2
-
-  - name: unzip
-    provider: python
-    script: unzip.py
-    depends-on:
-      - download:latest
-    artifacts:
-      - data
-    resources:
-      memory: 60GB
-      cpu: 2
-
   - name: train
-    provider: python ${{ config }} ${{ overrides }}
-    script: train_model.py
-    requirements: requirements.txt
+    provider: docker
+    image: armoredguitar/diplom:latest
+    commands:
+      - ls
+      - python3 test.py
+      - pip3 install -e ./
+      - python3 train_model.py ${{ config }} ${{ overrides }}
     depends-on:
-      - unzip:latest
+      - upload:latest
     artifacts:
-      - results
+      - results_copy
     resources:
       gpu: 1
       memory: 60GB

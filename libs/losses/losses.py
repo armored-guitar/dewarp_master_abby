@@ -73,10 +73,25 @@ class BaselineLoss(nn.Module):
         return loss, loss_dict
 
 
+class CELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.loss = nn.CrossEntropyLoss()
+
+    def calculate_loss(self, input_batch, output_batch):
+        labels = input_batch[1].long()
+        pred = output_batch
+        loss = self.loss(pred, labels)
+        accuracy = (pred.argmax(dim=1) == labels).float().mean()
+        return loss, {"ce": loss.item(), "accuracy": accuracy.item()}
+
+
 def get_loss(opt):
     name = opt["name"]
     if name == "baseline":
         return BaselineLoss(opt)
+    elif name == "ce":
+        return CELoss()
     raise NotImplementedError
 
 

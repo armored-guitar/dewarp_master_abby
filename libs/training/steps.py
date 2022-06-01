@@ -17,6 +17,35 @@ from libs.postprocessing.dewarping import create_mapping
 from libs.utils.utils import create_dir_for_file_if_needed
 
 
+def classification_epoch(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader,
+                         optimizer: torch.optim.Optimizer, epoch: int, writer: SummaryWriter, training_opt,
+                         eval_every: int = 40000, exp_name=""):
+    model.train()
+
+    train_epoch_pbar = tqdm(train_loader, desc=f"training epoch {epoch}", leave=False)
+
+    for batch_idx, batch_data in enumerate(train_epoch_pbar):
+        for param in model.parameters():
+            param.grad = None
+        loss, log_dict = model.get_loss(batch_data)
+        loss.backward()
+        optimizer.step()
+        train_epoch_pbar.set_postfix(log_dict)
+        for name, value in log_dict.items():
+            writer.add_scalar(f"step_{name}", value, batch_idx + len(train_loader) * epoch)
+
+        if (batch_idx + epoch * len(train_loader)) % eval_every == 0 and (batch_idx + epoch * len(train_loader) != 0):
+            val_log_dict = val_epoch(model, val_loader, batch_idx + epoch * len(train_loader), writer, False)
+            torch.save({
+                'model': model.state_dict(),
+                'epoch': epoch,
+                **val_log_dict,
+                "optimizer": optimizer.state_dict(),
+            }, os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"], exp_name,
+                            f"{batch_idx + epoch * len(train_loader)}.pth")
+            )
+
+
 def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: torch.optim.Optimizer, epoch: int,
                 writer: SummaryWriter, mixed: bool = False, scheduler=None):
     """
@@ -68,6 +97,7 @@ def val_epoch(model: nn.Module, val_loader: DataLoader, epoch: int, writer: Summ
               mixed: bool = False) -> Dict[str, float]:
     """
     Do one validation epoch
+    :param mixed:
     :param model: model
     :param val_loader: dataloader with validation examples
     :param epoch: current epoch
@@ -116,7 +146,6 @@ def test_flow_dewarping(model: nn.Module, val_loader: DataLoader, opt: DictConfi
     index = 0
     sigmoid = nn.Sigmoid()
     k = 1
-    print(len(val_loader))
     with torch.no_grad():
         for batch_idx, batch_data in enumerate(tqdm(val_loader)):
             mod_input, img, img_name = batch_data[0].to(device), batch_data[1], batch_data[-1][0]

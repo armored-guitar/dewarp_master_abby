@@ -4,12 +4,15 @@ import cv2
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from torchvision import transforms as T
+import torchvision.datasets as datasets
 from tqdm.auto import tqdm
 from PIL import Image
 from libs.data.utils import get_transform
 
 global_cv = 0
 global_pil = 0
+
 
 class CustomRescalsePIL(object):
     def __init__(self, size): # 960, 1024 (x, y)
@@ -31,8 +34,8 @@ class CustomRescalsePIL(object):
                                 (self.size[1]-new_y)//2))
             img = new_img
             global global_cv
-            if global_cv < 2:
-                print(img.size)
+            # if global_cv < 2:
+            #     print(img.size)
             global_cv += 1
         return img
 
@@ -139,3 +142,26 @@ class BaselineDewarpDataset(Dataset):
         return tuple(return_value)
 
 
+class ClassificationDataset():
+    def __init__(self, opt, **kwargs):
+        super().__init__()
+        path = opt["path"]
+        size = opt["size"]
+        self.transforms = T.Compose([
+                                        T.RandomResizedCrop(size),
+                                        T.RandomHorizontalFlip(),
+                                        T.ToTensor(),
+                                        T.Normalize(mean=[0.485, 0.456, 0.406],
+                                                             std=[0.229, 0.224, 0.225]),
+                                    ]) if "val" not in path else T.Compose([
+                                                                        T.Resize(size),
+                                                                        T.ToTensor(),
+                                                                        T.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                                    std=[0.229, 0.224, 0.225]),
+
+                                                                        ])
+        self.dataset = datasets.ImageFolder(path, transform=self.transforms)
+        print(self.transforms)
+
+    def get(self):
+        return self.dataset

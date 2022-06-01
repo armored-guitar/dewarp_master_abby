@@ -3,4 +3,5 @@ batch_norm: group_norm
 output_segformer: 3
 use_pos_encoding: False
 use_first_pos_only: False
+use_xca: False
 pretrained: True

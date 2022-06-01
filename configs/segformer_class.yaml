@@ -1,0 +1,5 @@
+defaults:
+  - model: segformer_class
+  - training: segformer_class
+  - dataset: classification
+  - inference: segformer

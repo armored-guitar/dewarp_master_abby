@@ -20,6 +20,7 @@ def main(opt: DictConfig):
 
     checkpoint = torch.load(os.path.join(opt["inference"]["path"], f"{opt['inference']['epoch']}.pth"))
     model.load_state_dict(checkpoint['model'])
+    print("loaded pretrained model")
     test_flow_dewarping(model, val_dl, opt["inference"])
 
 
