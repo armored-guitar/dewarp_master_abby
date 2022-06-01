@@ -3,9 +3,7 @@ workflows:
     provider: docker
     image: armoredguitar/diplom:latest
     commands:
-      - ls
-      - python3 test.py
-      - pip3 install -e ./
+      - pip3 install -e ./transformers
       - python3 train_model.py ${{ config }} ${{ overrides }}
     depends-on:
       - upload:latest
