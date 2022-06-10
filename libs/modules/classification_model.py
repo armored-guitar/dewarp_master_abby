@@ -14,13 +14,18 @@ class ClassificationSegformerModel(nn.Module):
 
         self.use_pos_encoding = opt["encoder"].get("use_pos_encoding", False)
         self.use_first_pos_only = opt["encoder"].get("use_first_pos_only", False)
-        self.use_xca = opt["encoder"].get("use_xca", False)
+        self.use_attention = opt["encoder"].get("use_attention", False)
+        self.use_lpi = opt["encoder"].get("use_lpi", False)
         configuration = SegformerConfig(attention_probs_dropout_prob=0.1, hidden_dropout_prob=0.1,
                                         patch_sizes=[7, 3, 3, 3], classifier_dropout_prob=0.1,
                                         num_labels=3, reshape_last_stage=True,
                                         hidden_sizes=[32, 64, 160, 256], depths=[2, 2, 2, 2],
                                         decoder_hidden_size=256)
-        self.segformer = SegformerForImageClassification.from_pretrained("nvidia/mit-b0", use_pos_encoding=self.use_pos_encoding, use_first_pos_only=self.use_first_pos_only, use_xca=self.use_xca)
+        self.segformer = SegformerForImageClassification.from_pretrained("nvidia/mit-b0",
+                                                                         use_pos_encoding=self.use_pos_encoding,
+                                                                         use_first_pos_only=self.use_first_pos_only,
+                                                                         use_attention=self.use_attention,
+                                                                         use_lpi=self.use_lpi)
 
         pos_usage = []
         mult = True

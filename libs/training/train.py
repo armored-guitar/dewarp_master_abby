@@ -28,7 +28,8 @@ def train(opt: DictConfig, model: nn.Module, train_dl: DataLoader, val_dl: DataL
     seed_everything(42)
     start_epoch = training_opt.get("start_epoch", 0)
     end_epoch = training_opt["n_epoch"]
-
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
     freeze_encoder_until = training_opt.get("freeze_encoder_until", 0)
 
     optimizer = get_optimizer(training_opt["optimizer"], model)
@@ -40,15 +41,22 @@ def train(opt: DictConfig, model: nn.Module, train_dl: DataLoader, val_dl: DataL
     scheduler = get_scheduler(scheduler_config, optimizer) if scheduler_config is not None else None
 
     mixed = training_opt.get("mixed_precision", False)
+
     if mixed:
         print("using mixed precision")
     eval_every = training_opt.get("eval_every", None)
     if start_epoch != 0:
+        print("load_model")
         name = training_opt["continue_name"]
-        path = os.path.join(training_opt["checkpoint_dir"], name, f"{start_epoch - 1}.pth")
-        model, optimizer, scheduler = load_everything(model, optimizer, scheduler, training_opt["load_optim"], path)
+        path = os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"], name, f"{start_epoch - 1}.pth")
+        model, optimizer, scheduler = load_everything(model, optimizer, scheduler, training_opt["load_optim"], path,
+                                                      device)
         config_name = get_name(os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"]), "config", False)
+        actual_lr = optimizer.param_groups[0]["lr"]
+        for g in optimizer.param_groups:
+            g['lr'] = actual_lr/10
     else:
+        actual_lr = None
         name = get_name(os.path.join(training_opt["base_dir"], training_opt["checkpoint_dir"]), training_opt["name"], True)
         config_name = "config"
 
@@ -58,14 +66,12 @@ def train(opt: DictConfig, model: nn.Module, train_dl: DataLoader, val_dl: DataL
     writer = SummaryWriter(os.path.join(training_opt["base_dir"], training_opt["logs_dir"], name))
     writer.add_text(name, str(OmegaConf.to_object(opt)))
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    
     count_params(model)
-    
-    model.to(device)
+
     epoch_pbar = tqdm(range(start_epoch, end_epoch), desc="training epoch progress")
 
     if (freeze_encoder_until != 0) and (start_epoch < freeze_encoder_until):
+        print("freeze encoder")
         for param in model.encoder.parameters():
             param.requires_grad = False
 
@@ -74,8 +80,9 @@ def train(opt: DictConfig, model: nn.Module, train_dl: DataLoader, val_dl: DataL
             for param in model.encoder.parameters():
                 param.requires_grad = True
         if eval_every is None:
-            train_epoch(model, train_dl, optimizer, epoch, writer, mixed, scheduler)
+            train_epoch(model, train_dl, optimizer, epoch, writer, mixed, scheduler, actual_lr)
             val_log_dict = val_epoch(model, val_dl, epoch, writer, mixed)
+            actual_lr = None
             epoch_pbar.set_postfix(val_log_dict)
 
             if (scheduler is not None) and isinstance(scheduler, ReduceLROnPlateau):

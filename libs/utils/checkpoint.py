@@ -5,12 +5,20 @@ import torch
 from torch import nn
 
 
-def load_everything(model: nn.Module, optimizer, scheduler, load_optim, load_path):
-    checkpoint = torch.load(load_path, map_location="cpu")
-    model.load_state_dict(checkpoint["model"])
+def load_everything(model: nn.Module, optimizer, scheduler, load_optim, load_path, device):
+    checkpoint = torch.load(load_path, map_location=device)
+    res = model.load_state_dict(checkpoint["model"])
+    print(res)
+    if hasattr(model.encoder, "segformer"):
+        pos_usage = []
+        for module in model.encoder.segformer.segformer.encoder.patch_embeddings:
+            pos_usage.append(module.use_pos_encoding)
+        print("pos_usage after loading:", pos_usage)
     if load_optim:
         optimizer.load_state_dict(checkpoint["optimizer"])
         scheduler.load_state_dict(checkpoint["scheduler"])
+        print(optimizer.param_groups[0]['lr'])
+        print(scheduler.state_dict())
     return model, optimizer, scheduler
 
 

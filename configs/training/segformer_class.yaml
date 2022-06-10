@@ -1,4 +1,4 @@
-name: segformer_b0_classification_all_pos_encod_small_dataset
+name: segformer_b0_classification_all_pos_encod_small_dataset_efficient
 n_epoch: 100
 
 base_dir: ./results_copy/classification/

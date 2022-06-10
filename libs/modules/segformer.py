@@ -101,7 +101,9 @@ class SegFormerEncoder(nn.Module):
         self.use_first_pos_only = opt.get("use_first_pos_only", False)
         self.pretrained = opt.get("pretrained", False)
         self.use_default_decoder = opt.get("use_default_decoder", True)
-        self.use_xca = opt.get("use_xca", False)
+        self.use_attention = opt.get("use_attention", "")
+        self.use_lpi = opt.get("use_lpi", False)
+        self.use_unet = opt.get("use_unet", False)
         configuration = SegformerConfig(attention_probs_dropout_prob=0.1, hidden_dropout_prob=0.1,
                                         patch_sizes=[7, 3, 3, 3], classifier_dropout_prob=0.1,
                                         num_labels=self.output_segformer, reshape_last_stage=True,
@@ -114,7 +116,7 @@ class SegFormerEncoder(nn.Module):
         # SegformerConfig(num_labels=150, reshape_last_stage=True, hidden_sizes=[64, 128, 320, 512])
         self.segformer = SegformerForSemanticSegmentation(configuration, use_pos_encoding=self.use_pos_encoding,
                                                           use_first_pos_only=self.use_first_pos_only,
-                                                          use_xca=self.use_xca)
+                                                          use_attention=self.use_attention, use_lpi=self.use_lpi)
 
         if self.pretrained:
             if isinstance(self.pretrained, bool):
@@ -122,6 +124,7 @@ class SegFormerEncoder(nn.Module):
                 self.segformer.segformer = encoder_pretrained
                 print("loaded mit model")
             elif isinstance(self.pretrained, str):
+                print("load my pretrained")
                 checkpoint = torch.load(self.pretrained)["model"]
 
                 encoder_pretrained = ClassificationSegformerModel({"encoder": opt, "loss": {"name": "ce"}})
@@ -145,6 +148,9 @@ class SegFormerEncoder(nn.Module):
             print("pos_usage:", pos_usage)
         if not self.use_default_decoder:
             self.segformer = self.segformer.segformer
+
+        if self.use_unet:
+            self.segformer.decode_head = MLPUnet4(opt.get("mlp_unet", {}))
 
     def forward(self, x):
         segformer_output = self.segformer(x, output_hidden_states=True)
@@ -184,7 +190,7 @@ class MLPUnetLayer(nn.Module):
         super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.dropout = nn.Dropout(dropout=0.1)
+        self.dropout = nn.Dropout(0.1)
         self.proj = nn.Conv2d(self.input_size, self.hidden_size, kernel_size=1)
         self.use_act = use_act
         self.act = nn.GELU() if use_act else nn.Identity()
@@ -213,27 +219,22 @@ class MLPUnet4(nn.Module):
                              hidden_size=self.hidden_size, dropout=self.dropout, use_act=self.use_act))
         self.layers = nn.ModuleList(layers)
         self.fuse = nn.Sequential(
-            nn.Conv2d(self.hidden_size + self.input_sizes[-1], self.hidden_size, kernel_size=1, padding=1, bias=False),
+            nn.Conv2d(self.hidden_size + self.input_sizes[-1], self.hidden_size, kernel_size=1, bias=False),
             nn.BatchNorm2d(self.hidden_size),
             nn.Dropout2d(0.1),
             nn.GELU(),
             nn.Conv2d(self.hidden_size, self.output_size, kernel_size=1)
         )
         self.upsample = nn.UpsamplingBilinear2d(scale_factor=2)
-        self.final_upsample = nn.UpsamplingBilinear2d(scale_factor=4)
 
-    def forward(self, dummy, hidden_dims):
+    def forward(self, hidden_dims):
         hidden_dims = list(reversed(hidden_dims))
         batch_size, _, height, width = hidden_dims[0].shape
         x = self.layers[0](hidden_dims[0])
-        x = x.permute(0, 2, 1)
-        x = x.reshape(batch_size, -1, height, width)
         x = self.upsample(x)
         for i, h in enumerate(hidden_dims[1:-1]):
             batch_size, _, height, width = h.shape
             x = self.layers[i + 1](h, x)
-            x = x.permute(0, 2, 1)
-            x = x.reshape(batch_size, -1, height, width)
             x = self.upsample(x)
         x = self.fuse(torch.cat([x, hidden_dims[-1]], dim=1))
-        return self.final_upsample(x)
+        return x

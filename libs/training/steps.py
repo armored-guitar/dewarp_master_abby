@@ -47,7 +47,7 @@ def classification_epoch(model: nn.Module, train_loader: DataLoader, val_loader:
 
 
 def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: torch.optim.Optimizer, epoch: int,
-                writer: SummaryWriter, mixed: bool = False, scheduler=None):
+                writer: SummaryWriter, mixed: bool = False, scheduler=None, actual_lr=None):
     """
     Do one training epoch
     :param model: model
@@ -86,6 +86,10 @@ def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: torch.opt
             loss.backward()
             optimizer.step()
             train_epoch_pbar.set_postfix(log_dict)
+            if actual_lr is not None and batch_idx == 1500:
+                for g in optimizer.param_groups:
+                    g['lr'] = actual_lr
+                    print("adjust warmup learning rate back to normal")
             for name, value in log_dict.items():
                 writer.add_scalar(f"step_{name}", value, batch_idx + len(train_loader) * epoch)
             if isinstance(scheduler, torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):

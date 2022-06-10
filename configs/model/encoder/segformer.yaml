@@ -3,5 +3,6 @@ batch_norm: group_norm
 output_segformer: 3
 use_pos_encoding: False
 use_first_pos_only: False
-use_xca: False
-pretrained: True
+use_attention: xca
+use_lpi: True
+pretrained: "results_copy/classification/checkpoints/segformer_b0_classification_all_pos_encod_small_dataset_xca/3.pth"

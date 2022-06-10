@@ -11,7 +11,7 @@ val_dataset:
   type: baseline
   path: /home/alex/diplom/data/val_dataset/
   batch_size: 1
-  num_workers: 4
+  num_workers: 1
   shuffle: False
   pin_memory: True
   transforms: True

@@ -15,6 +15,7 @@ def main(opt: DictConfig):
     torch.autograd.profiler.profile(False)
     torch.autograd.profiler.emit_nvtx(False)
     seed_everything(42)
+    print("cuda: ", torch.cuda.is_available())
     model = get_model(opt["model"])
 
     train_dl, val_dl = get_loaders(opt["dataset"], "train")

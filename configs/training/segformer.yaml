@@ -1,5 +1,5 @@
-name: segformer_b0_bs3_pretrained_pos_encod_
-n_epoch: 100
+name: segformer_b0_bs3_pretrained_3_all_pos_encod_xca
+n_epoch: 46
 
 base_dir: ./results_copy/
 logs_dir: logs
@@ -16,4 +16,8 @@ optimizer:
 
 scheduler:
   name: transformer
+
+#load_optim: True
+#continue_name: segformer_b0_bs3_pretrained_first_pos_encod
+#start_epoch: 37
 
